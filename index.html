@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المشتريات</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 800px;
+        }
+
+        h1, h2 {
+            text-align: center;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+        label {
+            margin-bottom: 5px;
+        }
+
+        input, button {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .purchased {
+            background-color: #d4edda;
+        }
+
+        .budget-section, .total {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+
+        #totalAmount {
+            font-weight: bold;
+        }
+
+        .red {
+            color: red;
+        }
+
+        .message {
+            display: none;
+            padding: 10px;
+            background-color: #dff0d8;
+            color: #3c763d;
+            border: 1px solid #d6e9c6;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+    <div class="container">
+        <h1>إدارة المشتريات</h1>
+
+        <div id="message" class="message"></div>
+        
+        <form id="addFundsForm">
+            <label for="funds">إضافة مبلغ:</label>
+            <input type="number" id="funds" required>
+            <button type="submit">إضافة</button>
+        </form>
+        
+        <form id="purchaseForm">
+            <div class="budget-section">
+                <span>المبلغ المتاح: </span>
+                <span id="budget">$0.00</span>
+            </div>
+            <h2>إضافة إلى قائمة الأمنيات</h2>
+            <label for="productName">اسم العنصر:</label>
+            <input type="text" id="productName" required>
+            
+            <label for="price">السعر:</label>
+            <input type="number" id="price" required>
+            
+            <label for="quantity">الكمية:</label>
+            <input type="number" id="quantity" required>
+            
+            <label for="date">التاريخ:</label>
+            <input type="date" id="date" required>
+            
+            <button type="submit">إضافة</button>
+        </form>
+        
+        <h2>قائمة الأمنيات</h2>
+        <button id="refreshButton">تحديث البيانات</button>
+        <table id="wishlistTable">
+            <thead>
+                <tr>
+                    <th>اسم العنصر</th>
+                    <th>السعر</th>
+                    <th>الكمية</th>
+                    <th>التاريخ</th>
+                    <th>إجراءات</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        
+        <h2>سلة المشتريات</h2>
+        <table id="cartTable">
+            <thead>
+                <tr>
+                    <th>اسم العنصر</th>
+                    <th>السعر</th>
+                    <th>الكمية</th>
+                    <th>التاريخ</th>
+                    <th>إجراءات</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        
+        <div class="total">
+            <span>إجمالي المبلغ المصروف: </span>
+            <span id="totalAmount">$0.00</span>
+        </div>
+        <button id="clearCartButton">حذف سلة المشتريات</button>
+    <button id="resetBudgetButton">تصفير المبلغ</button>
+    
+    </div>
+    
+    
+    <script>
+        document.getElementById("clearCartButton").addEventListener("click", function() {
+            // مسح البيانات الخاصة بسلة المشتريات
+            localStorage.removeItem("cart");
+            
+            // تحديث العرض
+            refreshData();
+        });
+    
+        document.getElementById("resetBudgetButton").addEventListener("click", function() {
+            // تصفير قيمة المبلغ الحالي
+            localStorage.setItem("budget", 0);
+    
+            // تحديث العرض
+            refreshData();
+        });
+    
+        // وظيفة لتحديث البيانات
+        function refreshData() {
+            document.getElementById("refreshButton").click();
+        }
+        document.addEventListener("DOMContentLoaded", function() {
+            const budgetElement = document.getElementById("budget");
+            const totalAmountElement = document.getElementById("totalAmount");
+            const fundsInput = document.getElementById("funds");
+            const productNameInput = document.getElementById("productName");
+            const priceInput = document.getElementById("price");
+            const quantityInput = document.getElementById("quantity");
+            const dateInput = document.getElementById("date");
+            const wishlistTable = document.getElementById("wishlistTable").getElementsByTagName("tbody")[0];
+            const cartTable = document.getElementById("cartTable").getElementsByTagName("tbody")[0];
+            const messageElement = document.getElementById("message");
+            const refreshButton = document.getElementById("refreshButton");  // إضافه معرف زر التحديث
+            let budget = parseFloat(localStorage.getItem("budget")) || 0;
+            let wishlist = JSON.parse(localStorage.getItem("wishlist")) || [];
+            let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+            function updateBudgetDisplay() {
+                budgetElement.textContent = `$${budget.toFixed(2)}`;
+                if (budget < 0) {
+                    budgetElement.classList.add("red");
+                } else {
+                    budgetElement.classList.remove("red");
+                }
+            }
+
+            function updateTotalAmount() {
+                let total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+                totalAmountElement.textContent = `$${total.toFixed(2)}`;
+            }
+
+            function saveData() {
+                localStorage.setItem("budget", budget);
+                localStorage.setItem("wishlist", JSON.stringify(wishlist));
+                localStorage.setItem("cart", JSON.stringify(cart));
+            }
+
+            function renderTable(table, items, isCart) {
+                table.innerHTML = "";
+                items.forEach((item, index) => {
+                    const row = table.insertRow();
+                    row.insertCell(0).textContent = item.name;
+                    row.insertCell(1).textContent = `$${item.price.toFixed(2)}`;
+                    row.insertCell(2).textContent = item.quantity;
+                    row.insertCell(3).textContent = item.date;
+                    const actionCell = row.insertCell(4);
+
+                    if (isCart) {
+                        const removeButton = document.createElement("button");
+                        removeButton.textContent = "إزالة";
+                        removeButton.onclick = () => {
+                            budget += item.price * item.quantity;
+                            cart.splice(index, 1);
+                            saveData();
+                            updateBudgetDisplay();
+                            updateTotalAmount();
+                            renderTable(cartTable, cart, true);
+                        };
+                        actionCell.appendChild(removeButton);
+                    } else {
+                        const buyButton = document.createElement("button");
+                        buyButton.textContent = "شراء";
+                        buyButton.onclick = () => {
+                            const totalCost = item.price * item.quantity;
+                            if (budget >= totalCost) {
+                                if (confirm(`هل تريد شراء هذا العنصر بمبلغ $${totalCost.toFixed(2)}؟`)) {
+                                    budget -= totalCost;
+                                    cart.push(item);
+                                    wishlist.splice(index, 1);
+                                    saveData();
+                                    updateBudgetDisplay();
+                                    updateTotalAmount();
+                                    renderTable(wishlistTable, wishlist, false);
+                                    renderTable(cartTable, cart, true);
+                                }
+                            } else {
+                                alert("لا يوجد مبلغ كافٍ للشراء");
+                            }
+                        };
+                        actionCell.appendChild(buyButton);
+
+                        const deleteButton = document.createElement("button");
+                        deleteButton.textContent = "حذف";
+                        deleteButton.onclick = () => {
+                            if (confirm("هل أنت متأكد أنك تريد حذف هذا العنصر؟")) {
+                                wishlist.splice(index, 1);
+                                saveData();
+                                renderTable(wishlistTable, wishlist, false);
+                            }
+                        };
+                        actionCell.appendChild(deleteButton);
+
+                        const editButton = document.createElement("button");
+                        editButton.textContent = "تعديل";
+                        editButton.onclick = () => {
+                            const newPrice = parseFloat(prompt("أدخل السعر الجديد:", item.price));
+                            const newQuantity = parseInt(prompt("أدخل الكمية الجديدة:", item.quantity), 10);
+                            if (!isNaN(newPrice) && !isNaN(newQuantity) && newPrice > 0 && newQuantity > 0) {
+                                item.price = newPrice;
+                                item.quantity = newQuantity;
+                                saveData();
+                                renderTable(wishlistTable, wishlist, false);
+                            } else {
+                                alert("الرجاء إدخال قيم صحيحة.");
+                            }
+                        };
+                        actionCell.appendChild(editButton);
+                    }
+                });
+            }
+
+            document.getElementById("addFundsForm").addEventListener("submit", function(event) {
+                event.preventDefault();
+                const amount = parseFloat(fundsInput.value);
+                if (!isNaN(amount) && amount > 0) {
+                    budget += amount;
+                    messageElement.textContent = `تمت إضافة مبلغ $${amount.toFixed(2)} إلى رصيدك.`;
+                    messageElement.style.display = "block";
+                    setTimeout(() => {
+                        messageElement.style.display = "none";
+                    }, 3000);
+                    fundsInput.value = "";
+                    saveData();
+                    updateBudgetDisplay();
+                }
+            });
+
+            document.getElementById("purchaseForm").addEventListener("submit", function(event) {
+                event.preventDefault();
+                const name = productNameInput.value;
+                const price = parseFloat(priceInput.value);
+                const quantity = parseInt(quantityInput.value, 10);
+                const date = dateInput.value;
+
+                if (name && !isNaN(price) && !isNaN(quantity) && date && price > 0 && quantity > 0) {
+                    wishlist.push({ name, price, quantity, date });
+                    saveData();
+                    renderTable(wishlistTable, wishlist, false);
+                    productNameInput.value = "";
+                    priceInput.value = "";
+                    quantityInput.value = "";
+                    dateInput.value = "";
+                } else {
+                    alert("الرجاء ملء جميع الحقول بمعلومات صحيحة.");
+                }
+            });
+
+            function refreshData() {
+                wishlist = JSON.parse(localStorage.getItem("wishlist")) || [];
+                cart = JSON.parse(localStorage.getItem("cart")) || [];
+                renderTable(wishlistTable, wishlist, false);
+                renderTable(cartTable, cart, true);
+                updateTotalAmount();
+            }
+
+            refreshButton.addEventListener("click", function() {
+                refreshData();
+                messageElement.textContent = "تم تحديث البيانات.";
+                messageElement.style.display = "block";
+                setTimeout(() => {
+                    messageElement.style.display = "none";
+                }, 3000);
+                
+            });
+
+            // تهيئة العرض عند تحميل الصفحة
+            updateBudgetDisplay();
+            updateTotalAmount();
+            renderTable(wishlistTable, wishlist, false);
+            renderTable(cartTable, cart, true);
+        });
+        // إضافة الأموال إلى الميزانية
+document.getElementById("addFundsForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+    let funds = parseFloat(document.getElementById("funds").value);
+    if (isNaN(funds) || funds <= 0) {
+        showMessage("الرجاء إدخال مبلغ صالح", "error");
+        return;
+    }
+    let budget = parseFloat(localStorage.getItem("budget")) || 0;
+    budget += funds;
+    localStorage.setItem("budget", budget);
+    refreshData();
+    showMessage("تمت إضافة الأموال بنجاح", "success");
+    document.getElementById("funds").value = "";
+});
+
+// إضافة عنصر إلى قائمة الأمنيات
+document.getElementById("purchaseForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+    let name = document.getElementById("productName").value;
+    let price = parseFloat(document.getElementById("price").value);
+    let quantity = parseInt(document.getElementById("quantity").value);
+    let date = document.getElementById("date").value;
+
+    if (!name || isNaN(price) || isNaN(quantity) || !date) {
+        showMessage("يرجى ملء جميع الحقول بشكل صحيح", "error");
+        return;
+    }
+
+    let wishlist = JSON.parse(localStorage.getItem("wishlist")) || [];
+    wishlist.push({ name, price, quantity, date });
+    localStorage.setItem("wishlist", JSON.stringify(wishlist));
+    refreshData();
+    showMessage("تمت إضافة العنصر إلى قائمة الأمنيات", "success");
+    document.getElementById("purchaseForm").reset();
+});
+
+// وظيفة لإظهار الرسائل للمستخدم
+function showMessage(message, type) {
+    const messageElement = document.getElementById("message");
+    messageElement.textContent = message;
+    messageElement.className = type;
+    messageElement.style.display = "block";
+    setTimeout(() => {
+        messageElement.style.display = "none";
+    }, 3000);
+    totalAmountElement=0
+    total=0
+    
+}
+
+// وظيفة لتحديث البيانات (موجودة مسبقًا)
+function refreshData() {
+    document.getElementById("refreshButton").click();
+    
+    
+}
+
+// استدعاء التحديث عند تحميل الصفحة لأول مرة (موجود مسبقًا)
+refreshData();
+    </script>
+</body>
+</html>
