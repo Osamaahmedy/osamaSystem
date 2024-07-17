@@ -179,18 +179,18 @@
     
     <script>
         document.getElementById("clearCartButton").addEventListener("click", function() {
-            // مسح البيانات الخاصة بسلة المشتريات
+            
             localStorage.removeItem("cart");
             
-            // تحديث العرض
+           
             refreshData();
         });
     
         document.getElementById("resetBudgetButton").addEventListener("click", function() {
-            // تصفير قيمة المبلغ الحالي
+          
             localStorage.setItem("budget", 0);
     
-            // تحديث العرض
+          
             refreshData();
         });
     
